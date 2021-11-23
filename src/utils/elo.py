@@ -2,16 +2,18 @@ from collections import defaultdict
 
 
 class Elo:
-    def __init__(self, results, k_factor=20):
+    def __init__(self, results,team_h, team_a, k_factor=20):
         self.fixtures = results.copy().reset_index(drop=True)
         self.ratings = defaultdict(lambda: 1200)
         self.k_factor = k_factor
+        self.team_h = team_h
+        self.team_a = team_a
 
     def _record_expectation(self, i, fixture):
         self.fixtures.at[i, "elo_e"] = self.win_prob(
-            fixture["team_h"], fixture["team_a"]
+            fixture[self.team_h], fixture[self.team_a]
         )
-        self.fixtures.at[i, "elo"] = self.ratings[fixture["team_h"]]
+        self.fixtures.at[i, "elo"] = self.ratings[fixture[self.team_h]]
 
     def process_all_fixtures(self):
         for i, f in self.fixtures.iterrows():
@@ -20,11 +22,11 @@ class Elo:
         return self.fixtures, self.ratings
 
     def _process_fixture(self, fixture):
-        win_prob = self.win_prob(fixture["team_h"], fixture["team_a"])
-        self.ratings[fixture["team_h"]] += (
+        win_prob = self.win_prob(fixture[self.team_h], fixture[self.team_a])
+        self.ratings[fixture[self.team_h]] += (
             fixture["outcome"] - win_prob
         ) * self.k_factor
-        self.ratings[fixture["team_a"]] += (
+        self.ratings[fixture[self.team_a]] += (
             win_prob - fixture["outcome"]
         ) * self.k_factor
 
