@@ -2,7 +2,7 @@ from collections import defaultdict
 
 
 class Elo:
-    def __init__(self, results,team_h, team_a, k_factor=20):
+    def __init__(self, results, team_h, team_a, k_factor=20):
         self.fixtures = results.copy().reset_index(drop=True)
         self.ratings = defaultdict(lambda: 1200)
         self.k_factor = k_factor
