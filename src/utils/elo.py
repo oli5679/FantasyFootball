@@ -10,9 +10,7 @@ class Elo:
         self.team_a = team_a
 
     def _record_expectation(self, i, fixture):
-        self.fixtures.at[i, "elo_e"] = self.win_prob(
-            fixture[self.team_h], fixture[self.team_a]
-        )
+        self.fixtures.at[i, "elo_e"] = self.win_prob(fixture[self.team_h], fixture[self.team_a])
         self.fixtures.at[i, "elo"] = self.ratings[fixture[self.team_h]]
 
     def process_all_fixtures(self):
@@ -23,12 +21,8 @@ class Elo:
 
     def _process_fixture(self, fixture):
         win_prob = self.win_prob(fixture[self.team_h], fixture[self.team_a])
-        self.ratings[fixture[self.team_h]] += (
-            fixture["outcome"] - win_prob
-        ) * self.k_factor
-        self.ratings[fixture[self.team_a]] += (
-            win_prob - fixture["outcome"]
-        ) * self.k_factor
+        self.ratings[fixture[self.team_h]] += (fixture["outcome"] - win_prob) * self.k_factor
+        self.ratings[fixture[self.team_a]] += (win_prob - fixture["outcome"]) * self.k_factor
 
     def win_prob(self, team_1, team_2):
         rating_1, rating_2 = self.ratings[team_1], self.ratings[team_2]
