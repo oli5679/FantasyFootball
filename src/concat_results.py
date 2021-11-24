@@ -66,6 +66,8 @@ def concat_player_data(seasons):
     gameweek_df["date"] = pd.to_datetime(gameweek_df.kickoff_time).dt.date
     print(f"concat {gameweek_df.date.max()}")
     gameweek_df["clean_name"] = clean_name(gameweek_df.name, NAME_SWAPS)
+    for col in ["team", "position"]:  # backfill the missing data for early seasons based on name
+        gameweek_df[col] = gameweek_df.groupby("clean_name")[col].bfill()
     return gameweek_df.reset_index(drop=True)
 
 
@@ -83,6 +85,9 @@ def concat_understat_data():
                 dlq.append(player)
     print(f"understat {combined_df.date.max()}")
     assert len(dlq) == 1  # only one incorrect file
+    combined_df["clean_name"] = combined_df.player.str.replace("\_\d+\.csv", "", regex=True).str.replace(
+        "á", "a", regex=False
+    )
     return combined_df
 
 
@@ -90,16 +95,15 @@ def create_ratings(gameweek_df):
     teams = pd.read_csv(f"{SOURCE}/master_team_list.csv").rename(
         columns={"team": "opponent_team", "team_name": "opponent_name"}
     )
-    gameweek_df["team"] = gameweek_df.groupby("clean_name")["team"].bfill()  # backfill the teams based on the players
+
     # in cases where multiple opponents, e.g. because name backfill is wrong, go with the most common opponent
     gameweek_dedup = (
         gameweek_df.groupby(["team", "gw", "season", "opponent_team"], as_index=False)
         .agg({"name": "count", "team_h_score": "first", "team_a_score": "first", "was_home": "first",})
         .sort_values(by=["opponent_team", "season", "gw", "name"])
         .drop_duplicates(subset=["opponent_team", "season", "gw"], keep="last")
-    )
-    assert len(gameweek_dedup) == len(gameweek_dedup.drop_duplicates(subset=["team", "season", "gw", "opponent_team"]))
-    with_opponents = gameweek_df.merge(teams, on=["season", "opponent_team"], how="left")
+    ).drop_duplicates(subset=["team", "season", "gw"])
+    with_opponents = gameweek_dedup.merge(teams, on=["season", "opponent_team"], how="left")
     fixtures = (
         with_opponents[["team", "opponent_name", "season", "gw", "team_h_score", "team_a_score", "was_home",]]
         .loc[with_opponents.team.notna()]
